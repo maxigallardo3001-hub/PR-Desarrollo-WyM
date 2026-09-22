@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Órdenes de despacho — La Chilena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Mrs+Saint+Delafield&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<div id="app-header"></div>
+
+<main class="page">
+  <div class="section-head">
+    <div>
+      <h2>Órdenes de despacho</h2>
+      <p>Pedidos pagados, en el orden en que llegaron, listos para ir a la cocina.</p>
+    </div>
+    <button class="btn btn-ghost no-print" onclick="window.print()">Imprimir todas</button>
+  </div>
+  <div id="dispatchList"></div>
+</main>
+
+<footer class="site-footer">
+  La Chilena · Empanadas artesanales<br>
+  <a href="ayuda.html" class="footer-link">Centro de Ayuda y Manuales</a>
+</footer>
+<div id="app-tabbar"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+const session = requireRole(['despacho']);
+if(!session) throw new Error('Redirigiendo a inicio de sesión…');
+renderHeader('despacho');
+
+function renderDispatch(){
+  
+  const ready = DB.orders
+    .filter(o => o.status === 'pagado' || o.status === 'en_preparacion')
+    .slice()
+    .sort((a,b)=> new Date(a.date) - new Date(b.date));
+
+  const el = document.getElementById('dispatchList');
+  if(ready.length===0){
+    el.innerHTML = `<div class="empty-state"><div class="glyph">🧾</div><p>No hay órdenes de despacho pendientes.</p></div>`;
+    return;
+  }
+  el.innerHTML = ready.map((o,idx) => `
+    <div class="dispatch-card">
+      <div class="order-top">
+        <span class="order-id">#${idx+1} — ${o.id}</span>
+        <span class="badge ready">${o.status==='en_preparacion' ? 'En preparación' : 'Pagado — listo para preparar'}</span>
+      </div>
+      <div class="order-date">${fmtDate(o.date)}</div>
+      <ul class="items">${o.items.map(it => `<li>${it.qty} × ${it.name}</li>`).join('')}</ul>
+      <div class="order-foot no-print">
+        ${o.status==='pagado'
+          ? `<button class="btn btn-ghost btn-sm" onclick="markPreparing('${o.id}')">Marcar en preparación</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="markDispatched('${o.id}')">Marcar despachado</button>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function markPreparing(id){
+  const o = DB.orders.find(x=>x.id===id);
+  o.status = 'en_preparacion';
+  DB.saveOrders();
+  renderDispatch();
+}
+function markDispatched(id){
+  const o = DB.orders.find(x=>x.id===id);
+  o.status = 'despachado';
+  DB.saveOrders();
+  showToast('Pedido despachado.');
+  renderDispatch();
+}
+
+renderDispatch();
+</script>
+</body>
+</html>

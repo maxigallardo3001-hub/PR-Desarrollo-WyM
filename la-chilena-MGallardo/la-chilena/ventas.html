@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realizar venta — Cajero virtual La Chilena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Mrs+Saint+Delafield&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<div id="app-header"></div>
+
+<main class="page">
+  <div class="section-head">
+    <div>
+      <h2>Realizar venta</h2>
+      <p>Pedidos web pendientes de pago</p>
+    </div>
+  </div>
+  <div id="salesList"></div>
+</main>
+
+<footer class="site-footer">
+  La Chilena · Empanadas artesanales<br>
+  <a href="ayuda.html" class="footer-link">Centro de Ayuda y Manuales</a>
+</footer>
+<div id="app-tabbar"></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+const session = requireRole(['cajero']);
+if(!session) throw new Error('Redirigiendo a inicio de sesión…');
+renderHeader('ventas');
+
+function clientName(clientId){
+  const c = DB.clients.find(x=>x.id===clientId);
+  return c ? c.name : 'Cliente';
+}
+function clientEmail(clientId){
+  const c = DB.clients.find(x=>x.id===clientId);
+  return c ? c.email : '—';
+}
+
+function renderSales(){
+  const pending = DB.orders.filter(o => o.status === 'pendiente_pago');
+  const el = document.getElementById('salesList');
+  if(pending.length===0){
+    el.innerHTML = `<div class="empty-state"><div class="glyph">💳</div><p>No hay pedidos esperando pago.</p></div>`;
+    return;
+  }
+  el.innerHTML = pending.map(o => {
+    const total = o.items.reduce((s,it)=>s+it.price*it.qty,0);
+    return `
+      <div class="order-card">
+        <div class="order-top">
+          <span class="order-id">${o.id} · ${clientName(o.clientId)}</span>
+          <span class="badge pending">Pago pendiente</span>
+        </div>
+        <div class="order-date">${fmtDate(o.date)} · Medio: ${o.pay==='servipag'?'Servipag':'Depósito bancario'} · ${fmtCLP(total)}</div>
+        <div class="order-foot">
+          <span>${o.items.map(it=>it.name+' x'+it.qty).join(', ')}</span>
+          <button class="btn btn-primary btn-sm" onclick="confirmSale('${o.id}')">Confirmar pago y emitir boleta</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function confirmSale(id){
+  const order = DB.orders.find(o=>o.id===id);
+  if(!order) return;
+  order.status = 'pagado';
+  order.cashier = session.name;
+  order.boletaSentTo = clientEmail(order.clientId);
+  DB.saveOrders();
+  showToast(`Boleta emitida y enviada a ${order.boletaSentTo}`);
+  renderSales();
+}
+
+renderSales();
+</script>
+</body>
+</html>

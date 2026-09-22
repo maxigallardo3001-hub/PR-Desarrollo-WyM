@@ -1,0 +1,5 @@
+email:'admin@lachilena.cl' pass:'admin123' -> ADMIN
+email:'cajero@lachilena.cl'  pass:'cajero123' -> CAJERO VIRTUAL
+email:'despacho@lachilena.cl' pass:'despacho123' -> DESPACHO
+email:'dueno@lachilena.cl' 'pass:'dueno123' -> DUEÑO
+email:'constanza@gmail.com' pass:'cliente123' -> CLIENTE
