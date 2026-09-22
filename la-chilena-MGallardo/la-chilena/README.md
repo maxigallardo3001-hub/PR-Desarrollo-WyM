@@ -21,7 +21,13 @@ Para dar solución a los requerimientos del sistema sin depender de un backend a
 
 ## Demo
 
-https://github.com/maxigallardo3001-hub/PR-Desarrollo-WyM 
+Sitio Web:
+
+https://maxigallardo3001-hub.github.io/PR-Desarrollo-WyM/la-chilena-MGallardo/la-chilena/index.html
+
+Repo:
+
+https://github.com/maxigallardo3001-hub/PR-Desarrollo-WyM
 
 ## Cómo verlo localmente
 
