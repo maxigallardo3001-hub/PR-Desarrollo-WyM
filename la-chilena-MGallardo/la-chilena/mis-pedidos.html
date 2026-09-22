@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis pedidos — La Chilena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Mrs+Saint+Delafield&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<div id="app-header"></div>
+
+<main class="page">
+  <div class="section-head">
+    <div>
+      <h2>Mis pedidos</h2>
+      <p>Historial y estado de tus pedidos.</p>
+    </div>
+  </div>
+  <div id="ordersList"></div>
+</main>
+
+<div id="app-tabbar"></div>
+
+<div id="cancelModal" style="display:none; position:fixed; inset:0; background:rgba(43,27,18,.45); z-index:80; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:var(--white); border-radius:14px; padding:22px; max-width:420px; width:100%;">
+    <h3 style="margin-bottom:8px;">Anular pedido</h3>
+    <p style="font-size:13.5px; color:var(--ink-soft); margin-bottom:12px;">Cuéntanos el motivo de la anulación.</p>
+    <select id="cancelReason" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; margin-bottom:14px;">
+      <option>Me equivoqué en el pedido</option>
+      <option>Encontré mejor precio en otro local</option>
+      <option>Cambio de planes</option>
+      <option>Demora excesiva</option>
+      <option>Otro motivo</option>
+    </select>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-ghost btn-block" onclick="closeCancelModal()">Volver</button>
+      <button class="btn btn-primary btn-block" onclick="submitCancel()">Confirmar anulación</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  La Chilena · Empanadas artesanales<br>
+  <a href="ayuda.html" class="footer-link">Centro de Ayuda y Manuales</a>
+</footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/auth.js"></script>
+<script>
+const session = requireRole(['cliente']);
+if(!session) throw new Error('Redirigiendo a inicio de sesión…');
+renderHeader('orders');
+
+let cancelTargetId = null;
+
+function renderOrders(){
+  const mine = DB.orders.filter(o => o.clientId === session.id);
+  const el = document.getElementById('ordersList');
+  if(mine.length === 0){
+    el.innerHTML = `<div class="empty-state"><div class="glyph">🧾</div><p>Todavía no tienes pedidos.</p></div>`;
+    return;
+  }
+  el.innerHTML = mine.map(o => {
+    const total = o.items.reduce((s,it)=>s+it.price*it.qty,0);
+    const itemCount = o.items.reduce((s,it)=>s+it.qty,0);
+    const st = STATUS_LABEL[o.status];
+    const canCancel = o.status === 'pendiente_pago' || o.status === 'pagado';
+    return `
+      <div class="order-card">
+        <div class="order-top">
+          <span class="order-id">${o.id}</span>
+          <span class="badge ${st.cls}">${st.label}</span>
+        </div>
+        <div class="order-date">${fmtDate(o.date)} · ${itemCount} ítems · ${fmtCLP(total)}</div>
+        <div class="order-foot">
+          <span>${o.items.map(it=>it.name+' x'+it.qty).join(', ')}</span>
+          ${canCancel ? `<button class="link-btn" onclick="openCancelModal('${o.id}')">Anular</button>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openCancelModal(id){
+  cancelTargetId = id;
+  document.getElementById('cancelModal').style.display = 'flex';
+}
+function closeCancelModal(){
+  cancelTargetId = null;
+  document.getElementById('cancelModal').style.display = 'none';
+}
+function submitCancel(){
+  const order = DB.orders.find(o => o.id === cancelTargetId);
+  if(order){
+    order.status = 'anulado';
+    order.cancelReason = document.getElementById('cancelReason').value;
+    DB.saveOrders();
+    showToast('Pedido anulado.');
+  }
+  closeCancelModal();
+  renderOrders();
+}
+
+renderOrders();
+</script>
+</body>
+</html>
